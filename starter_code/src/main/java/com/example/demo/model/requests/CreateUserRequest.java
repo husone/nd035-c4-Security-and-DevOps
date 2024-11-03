@@ -7,6 +7,33 @@ public class CreateUserRequest {
 	@JsonProperty
 	private String username;
 
+	@JsonProperty
+	private String password;
+
+	@JsonProperty
+	private String confirmPassword;
+
+	public boolean isLegalCreateUser(){
+		return username != null && !username.isEmpty() && password != null && !password.isEmpty() && password.length() >= 7 && password.equals(confirmPassword);
+	}
+
+	public String getConfirmPassword() {
+		return confirmPassword;
+	}
+
+	public void setConfirmPassword(String confirmPassword) {
+		this.confirmPassword = confirmPassword;
+	}
+
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 	public String getUsername() {
 		return username;
 	}

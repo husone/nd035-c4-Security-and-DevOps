@@ -1,10 +1,11 @@
 package com.example.demo.controllers;
 
-import java.util.Optional;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,33 +22,49 @@ import com.example.demo.model.requests.CreateUserRequest;
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
-	
+
 	@Autowired
 	private UserRepository userRepository;
-	
+
 	@Autowired
 	private CartRepository cartRepository;
+
+	@Autowired
+	private BCryptPasswordEncoder bCryptPasswordEncoder;
+
+	private static final Logger log = LoggerFactory.getLogger(UserController.class);
 
 	@GetMapping("/id/{id}")
 	public ResponseEntity<User> findById(@PathVariable Long id) {
 		return ResponseEntity.of(userRepository.findById(id));
 	}
-	
+
 	@GetMapping("/{username}")
 	public ResponseEntity<User> findByUserName(@PathVariable String username) {
 		User user = userRepository.findByUsername(username);
 		return user == null ? ResponseEntity.notFound().build() : ResponseEntity.ok(user);
 	}
-	
+
 	@PostMapping("/create")
 	public ResponseEntity<User> createUser(@RequestBody CreateUserRequest createUserRequest) {
+		if (!createUserRequest.isLegalCreateUser()){
+			log.error("Invalid request to create user: " + createUserRequest.toString());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
+		log.info("Creating user with username: " + createUserRequest.getUsername());
 		User user = new User();
 		user.setUsername(createUserRequest.getUsername());
 		Cart cart = new Cart();
 		cartRepository.save(cart);
 		user.setCart(cart);
-		userRepository.save(user);
+		try {
+			user.setPassword(bCryptPasswordEncoder.encode(createUserRequest.getPassword()));
+			userRepository.save(user);
+		} catch (Exception e){
+			log.error("Error saving user: " + e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
+		}
 		return ResponseEntity.ok(user);
 	}
-	
+
 }
